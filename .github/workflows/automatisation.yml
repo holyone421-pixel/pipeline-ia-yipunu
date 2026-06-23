@@ -1,0 +1,32 @@
+name: Pipeline IA Yipunu Automatique
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # S'exécute automatiquement tous les lundis à minuit
+  workflow_dispatch: # Permet de lancer le robot manuellement pour tester
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Récupération des fichiers du projet
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configuration de l'environnement Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 🛠️ Installation des modules requis
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: 🤖 Exécution du script d'IA
+        run: python pipeline.py
+
+      - name: 💾 Enregistrement automatique des tokens dans votre base Cloud
+        run: |
+          git config --global user.name 'IA-Yipunu-Bot'
+          git config --global user.email 'bot@yipunu.ia'
+          git add dictionnaire_yipunu.json
+          git diff --quiet && git diff --cached --quiet || (git commit -m "🤖 [Robot] Mise à jour automatique de la base de données Yipunu" && git push)
