@@ -1,0 +1,55 @@
+name: Pipeline Automatique Lexique Yipunu
+
+on:
+  schedule:
+    # S'exécute automatiquement toutes les nuits à minuit UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Vous permet aussi de lancer la collecte manuellement en 1 clic sur GitHub
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Récupération du code de votre projet
+    - name: Récupérer le code du dépôt
+      uses: actions/checkout@v4
+
+    # 2. Installation de Python
+    - name: Configurer Python
+      uses: actions/setup-python@v5
+      with:
+        python-python: '3.10'
+        cache: 'pip'
+
+    # 3. Installation des outils requis (pypdf, bs4, etc.)
+    - name: Installer les dépendances
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    # 4. Lancement du moteur Principal (Web et fichiers PDF)
+    - name: Exécuter le pipeline Web & PDF
+      run: python pipeline.py
+
+    # 5. Lancement du moteur Réseaux Sociaux (TikTok / Facebook)
+    - name: Exécuter le scraper Réseaux Sociaux
+      env:
+        TIKTOK_RESEARCH_CLIENT_TOKEN: ${{ secrets.TIKTOK_RESEARCH_CLIENT_TOKEN }}
+      run: python social_scraper.py
+
+    # 6. Sauvegarde automatique des dictionnaires JSON mis à jour sur votre GitHub
+    - name: Enregistrer les nouveaux mots sur GitHub
+      run: |
+        git config --global user.name "Yipunu-Bot-Automatique"
+        git config --global user.email "bot@yipunu-pipeline.local"
+        git add dictionnaire_yipunu.json lexique_social_yipunu.json
+        
+        # Le script ne valide les changements que s'il y a de nouveaux mots trouvés
+        if git diff --staged --quiet; then
+          echo "Aucun nouveau mot trouvé aujourd'hui."
+        else
+          git commit -m "🤖 [Bot] Synchronisation automatique du lexique Yipunu"
+          git push
+        fi
